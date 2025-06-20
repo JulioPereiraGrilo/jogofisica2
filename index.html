@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Trabalho Física - Jogo de Arremesso</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e74c3c;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+        }
+        
+        body {
+            text-align: center;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--light-color);
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        #gameContainer {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            perspective: 1000px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+        
+        #gameArea {
+            position: relative;
+            width: 100%;
+            height: 550px;
+            border: 4px solid rgba(255,255,255,0.1);
+            margin: 20px auto;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.5s ease;
+            transform-style: preserve-3d;
+        }
+        
+        /* Estilos para diferentes cenários */
+        .earth {
+            background: linear-gradient(to bottom, #87CEEB 0%, #1E90FF 50%, #4CAF50 100%);
+        }
+        .earth .floor {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to right, #8B4513, #A0522D);
+            border-top: 4px solid #5D4037;
+            box-shadow: inset 0 -10px 20px rgba(0,0,0,0.3);
+        }
+        .earth .wall {
+            position: absolute;
+            bottom: 100px;
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(to bottom, #78909C, #B0BEC5);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .earth .cloud {
+            position: absolute;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+        }
+        
+        .moon {
+            background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 100%);
+        }
+        .moon .floor {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(to right, #9E9E9E, #757575);
+            border-radius: 50% 50% 0 0 / 30% 30% 0 0;
+            box-shadow: inset 0 -15px 30px rgba(0,0,0,0.5);
+        }
+        .moon .crater {
+            position: absolute;
+            background: rgba(0,0,0,0.2);
+            border-radius: 50%;
+            bottom: 0;
+        }
+        .moon .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+        
+        .sun {
+            background: linear-gradient(to bottom, #000000 0%, #1a1a1a 100%);
+        }
+        .sun .floor {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(to right, #FFD700, #FFA500);
+            border-radius: 50% 50% 0 0 / 30% 30% 0 0;
+            box-shadow: 0 0 30px #FF8C00;
+        }
+        .sun .ray {
+            position: absolute;
+            background: linear-gradient(to top, rgba(255,140,0,0.8), transparent);
+            opacity: 0.7;
+            animation: pulse 1.5s infinite alternate;
+        }
+        .sun .solar-flare {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,69,0,0.5) 0%, transparent 70%);
+            animation: expand 3s infinite;
+        }
+        
+        .space {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        }
+        .space .floor {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(to right, #4A148C, #7B1FA2);
+            border-radius: 50% 50% 0 0 / 30% 30% 0 0;
+            box-shadow: 0 0 30px rgba(123,31,162,0.5);
+        }
+        .space .planet {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        
+        /* Jogadores com animação */
+        .jogador {
+            position: absolute;
+            bottom: 100px;
+            width: 40px;
+            height: 110px;
+            z-index: 20;
+            transition: transform 0.2s ease;
+        }
+        .jogador.shooting {
+            transform: translateY(-10px);
+        }
+        .jogador.hit {
+            animation: hit 0.5s ease;
+        }
+        .corpo {
+            position: absolute;
+            width: 100%;
+            height: 70px;
+            bottom: 0;
+            border-radius: 20px 20px 0 0;
+        }
+        .jogador1 .corpo {
+            background-color: #1976d2;
+        }
+        .jogador2 .corpo {
+            background-color: #e91e63;
+        }
+
+        .cabeca {
+            position: absolute;
+            top: -30px;
+            left: -5px;
+            width: 50px;
+            height: 50px;
+            background-color: #ffcc80;
+            border-radius: 50%;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.2);
+        }
+
+        .braco {
+            position: absolute;
+            width: 12px;
+            height: 50px;
+            background-color: #ffcc80;
+            z-index: 10;
+            border-radius: 6px;
+            transform-origin: top center;
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .bracoEsq {
+            top: 10px;
+            left: -10px;
+            transform: rotate(60deg);
+        }
+        .bracoDir {
+            top: 10px;
+            right: -10px;
+            transform: rotate(-60deg);
+        }
+        .jogador.shooting .bracoDir {
+            transform: rotate(-120deg);
+        }
+        
+        /* Estilos para diferentes bolas */
+        .bola {
+            position: absolute;
+            border-radius: 50%;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5), inset -5px -5px 10px rgba(0,0,0,0.3);
+            transform-origin: center;
+            transition: transform 0.1s;
+        }
+        .bola.spinning {
+            animation: spin 0.5s linear infinite;
+        }
+        
+        .bola-boliche {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle at 30% 30%, #000000, #333333 70%);
+        }
+        .bola-futebol {
+            width: 28px;
+            height: 28px;
+            background: 
+                radial-gradient(circle at 30% 30%, #FFFFFF, #E0E0E0 70%),
+                repeating-linear-gradient(45deg, #000000, #000000 5px, transparent 5px, transparent 10px);
+            background-blend-mode: multiply;
+        }
+        .bola-volei {
+            width: 30px;
+            height: 30px;
+            background: 
+                radial-gradient(circle at 30% 30%, #FFFFFF, #F5F5F5 70%),
+                linear-gradient(to right, #0055A4, #0055A4 3px, #FFD700 3px, #FFD700 6px, transparent 6px, transparent 9px);
+            background-size: 9px 100%;
+            background-blend-mode: multiply;
+        }
+        .bola-pingpong {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle at 30% 30%, #FFFFFF, #F5F5F5 70%);
+        }
+        
+        .ponto {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        /* Controles e informações */
+        #controls {
+            background: rgba(44, 62, 80, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        /* Seção de seleção de bola */
+        #ballSelection {
+            background: rgba(44, 62, 80, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #ballOptions {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .ball-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 10px;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.1);
+        }
+        .ball-option:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-3px);
+        }
+        .ball-option.selected {
+            background: rgba(52, 152, 219, 0.3);
+            box-shadow: 0 0 0 2px var(--primary-color);
+        }
+        .ball-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-bottom: 5px;
+        }
+        .ball-info {
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        #info {
+            background: rgba(44, 62, 80, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: left;
+            margin-top: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        input, select, button {
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            width: 100%;
+            background: rgba(255,255,255,0.9);
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5);
+            transform: translateY(-2px);
+        }
+        button {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 18px;
+            letter-spacing: 1px;
+            grid-column: span 2;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-transform: uppercase;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.2);
+        }
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: bold;
+            margin-top: 5px;
+            color: var(--light-color);
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Mensagens e pontuação */
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 25px 40px;
+            border-radius: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        .message span {
+            display: block;
+            font-size: 16px;
+            margin-top: 10px;
+            opacity: 0.8;
+        }
+        .score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 20px;
+            z-index: 50;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .score::before {
+            content: "🎯 ";
+        }
+        
+        /* Animações */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.7; }
+        }
+        @keyframes expand {
+            0% { transform: scale(0.5); opacity: 0.8; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            80% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        @keyframes hit {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+        }
+        
+        /* Efeito de parabéns */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+            z-index: 40;
+            animation: confettiFall 3s ease-in-out forwards;
+        }
+        
+        @keyframes confettiFall {
+            0% { 
+                transform: translateY(-100px) rotate(0deg); 
+                opacity: 1;
+            }
+            100% { 
+                transform: translateY(600px) rotate(360deg); 
+                opacity: 0;
+            }
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            #controls {
+                grid-template-columns: 1fr;
+            }
+            button {
+                grid-column: span 1;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            #gameArea {
+                height: 450px;
+            }
+            #ballOptions {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameContainer">
+        <h1>Movimento Parabólico - Jogo de Arremesso</h1>
+        
+        <!-- Seção de seleção de bola -->
+        <div id="ballSelection">
+            <h3>Escolha a Bola:</h3>
+            <div id="ballOptions">
+                <div class="ball-option selected" data-type="boliche" onclick="selectBall(this)">
+                    <div class="ball-preview bola-boliche"></div>
+                    <div class="ball-info">Boliche<br>7.2 kg</div>
+                </div>
+                <div class="ball-option" data-type="futebol" onclick="selectBall(this)">
+                    <div class="ball-preview bola-futebol"></div>
+                    <div class="ball-info">Futebol<br>0.43 kg</div>
+                </div>
+                <div class="ball-option" data-type="volei" onclick="selectBall(this)">
+                    <div class="ball-preview bola-volei"></div>
+                    <div class="ball-info">Vôlei<br>0.27 kg</div>
+                </div>
+                <div class="ball-option" data-type="pingpong" onclick="selectBall(this)">
+                    <div class="ball-preview bola-pingpong"></div>
+                    <div class="ball-info">Ping Pong<br>0.0027 kg</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="controls">
+            <div class="control-group">
+                <label for="angulo">Ângulo (graus):</label>
+                <input type="number" id="angulo" min="0" max="90" value="45" step="1">
+                
+                <label for="alturaInicial">Altura Inicial (px):</label>
+                <input type="number" id="alturaInicial" min="50" max="400" value="300" step="10">
+            </div>
+            
+            <div class="control-group">
+                <label for="velocidade">Velocidade (m/s):</label>
+                <input type="number" id="velocidade" min="0.1" value="15" step="0.1">
+                
+                <label for="gravidadeSelect">Gravidade:</label>
+                <select id="gravidadeSelect">
+                    <option value="9.8">Terra (9,8 m/s²)</option>
+                    <option value="1.6">Lua (1,6 m/s²)</option>
+                    <option value="274">Sol (274 m/s²)</option>
+                    <option value="0.1">Espaço (0,1 m/s²)</option>
+                </select>
+            </div>
+            
+            <button id="lancarBtn" onclick="lancar()">Lançar Bola</button>
+        </div>
+        
+        <div id="gameArea" class="earth">
+            <div class="floor"></div>
+            <div class="wall"></div>
+            
+            <div class="jogador jogador1" id="jogador1">
+                <div class="corpo"></div>
+                <div class="perna pernaEsq"></div>
+                <div class="perna pernaDir"></div>
+                <div class="cabeca">
+                    <div class="olho olhoEsq"></div>
+                    <div class="olho olhoDir"></div>
+                </div>
+                <div class="braco bracoEsq"></div>
+                <div class="braco bracoDir"></div>
+            </div>
+            
+            <div class="jogador jogador2" id="jogador2">
+                <div class="corpo"></div>
+                <div class="perna pernaEsq"></div>
+                <div class="perna pernaDir"></div>
+                <div class="cabeca">
+                    <div class="olho olhoEsq"></div>
+                    <div class="olho olhoDir"></div>
+                </div>
+                <div class="braco bracoEsq"></div>
+                <div class="braco bracoDir"></div>
+            </div>
+            
+            <div class="message" id="message"></div>
+            <div class="score" id="score">0</div>
+        </div>
+        
+        <div id="info">
+            <h2>Como Jogar:</h2>
+            <p>O jogador azul deve arremessar a bola para acertar o jogador rosa. Ajuste o ângulo, altura inicial e velocidade do lançamento, selecione o ambiente planetário e clique em "Lançar Bola".</p>
+            <p>Dica: A gravidade e a massa da bola afetam a trajetória. Bolas mais pesadas vão menos longe com a mesma força!</p>
+        </div>
+    </div>
+
+    <script>
+        const gameArea = document.getElementById("gameArea");
+        const info = document.getElementById("info");
+        const message = document.getElementById("message");
+        const scoreDisplay = document.getElementById("score");
+        const gravidadeSelect = document.getElementById("gravidadeSelect");
+        const lancarBtn = document.getElementById("lancarBtn");
+        const jogador1 = document.getElementById("jogador1");
+        const jogador2 = document.getElementById("jogador2");
+        
+        // Elementos de input
+        const anguloInput = document.getElementById("angulo");
+        const alturaInput = document.getElementById("alturaInicial");
+        const velocidadeInput = document.getElementById("velocidade");
+        
+        let score = 0;
+        let animationId;
+        let currentGravity = "earth";
+        let isAnimating = false;
+        let selectedBallType = "boliche";
+        let selectedBallMass = 7.2; // kg
+        
+        // Dados das bolas
+        const balls = {
+            boliche: {
+                name: "Boliche",
+                mass: 7.2,
+                size: 30,
+                class: "bola-boliche"
+            },
+            futebol: {
+                name: "Futebol",
+                mass: 0.43,
+                size: 28,
+                class: "bola-futebol"
+            },
+            volei: {
+                name: "Vôlei",
+                mass: 0.27,
+                size: 30,
+                class: "bola-volei"
+            },
+            pingpong: {
+                name: "Ping Pong",
+                mass: 0.0027,
+                size: 20,
+                class: "bola-pingpong"
+            }
+        };
+        
+        // Selecionar bola
+        function selectBall(element) {
+            document.querySelectorAll('.ball-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            
+            selectedBallType = element.getAttribute('data-type');
+            selectedBallMass = balls[selectedBallType].mass;
+        }
+        
+        // Configurar ambiente da Terra
+        function setupEarth() {
+            // Remover nuvens existentes
+            document.querySelectorAll('.cloud').forEach(el => el.remove());
+            
+            for (let i = 0; i < 5; i++) {
+                const cloud = document.createElement("div");
+                cloud.classList.add("cloud");
+                
+                const size = Math.random() * 50 + 30;
+                const x = Math.random() * gameArea.offsetWidth;
+                const y = Math.random() * (gameArea.offsetHeight / 2);
+                
+                cloud.style.width = size + "px";
+                cloud.style.height = size / 2 + "px";
+                cloud.style.left = x + "px";
+                cloud.style.top = y + "px";
+                cloud.style.opacity = Math.random() * 0.5 + 0.3;
+                
+                gameArea.appendChild(cloud);
+            }
+        }
+        
+        // Configurar ambiente da Lua
+        function setupMoon() {
+            // Remover crateras existentes
+            document.querySelectorAll('.crater, .star').forEach(el => el.remove());
+            
+            // Crateras
+            for (let i = 0; i < 10; i++) {
+                const crater = document.createElement("div");
+                crater.classList.add("crater");
+                
+                const size = Math.random() * 60 + 20;
+                const x = Math.random() * gameArea.offsetWidth;
+                
+                crater.style.width = size + "px";
+                crater.style.height = size / 3 + "px";
+                crater.style.left = x + "px";
+                crater.style.bottom = "0px";
+                
+                gameArea.appendChild(crater);
+            }
+            
+            // Estrelas
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement("div");
+                star.classList.add("star");
+                star.style.left = Math.random() * 100 + "%";
+                star.style.top = Math.random() * 70 + "%";
+                
+                const size = Math.random() * 3 + 1;
+                star.style.width = size + "px";
+                star.style.height = size + "px";
+                
+                star.style.opacity = Math.random();
+                star.style.animationDelay = Math.random() * 2 + "s";
+                
+                gameArea.appendChild(star);
+            }
+        }
+        
+        // Configurar ambiente do Sol
+        function setupSun() {
+            // Remover raios e flares existentes
+            document.querySelectorAll('.ray, .solar-flare').forEach(el => el.remove());
+            
+            // Raios solares
+            for (let i = 0; i < 30; i++) {
+                const ray = document.createElement("div");
+                ray.classList.add("ray");
+                
+                const length = Math.random() * 150 + 50;
+                const angle = Math.random() * 360;
+                const x = Math.random() * gameArea.offsetWidth;
+                const y = Math.random() * gameArea.offsetHeight / 2;
+                
+                ray.style.width = "4px";
+                ray.style.height = length + "px";
+                ray.style.left = x + "px";
+                ray.style.top = y + "px";
+                ray.style.transform = `rotate(${angle}deg)`;
+                ray.style.transformOrigin = "bottom center";
+                ray.style.animationDelay = Math.random() * 1.5 + "s";
+                
+                gameArea.appendChild(ray);
+            }
+            
+            // Flares solares
+            for (let i = 0; i < 5; i++) {
+                const flare = document.createElement("div");
+                flare.classList.add("solar-flare");
+                
+                const size = Math.random() * 200 + 100;
+                const x = Math.random() * gameArea.offsetWidth;
+                const y = Math.random() * (gameArea.offsetHeight / 2) + 50;
+                
+                flare.style.width = size + "px";
+                flare.style.height = size + "px";
+                flare.style.left = x + "px";
+                flare.style.top = y + "px";
+                flare.style.animationDelay = Math.random() * 3 + "s";
+                
+                gameArea.appendChild(flare);
+            }
+        }
+        
+        // Configurar ambiente do Espaço
+        function setupSpace() {
+            // Remover planetas existentes
+            document.querySelectorAll('.planet').forEach(el => el.remove());
+            
+            // Planetas distantes
+            for (let i = 0; i < 3; i++) {
+                const planet = document.createElement("div");
+                planet.classList.add("planet");
+                
+                const size = Math.random() * 30 + 10;
+                const x = Math.random() * gameArea.offsetWidth;
+                const y = Math.random() * (gameArea.offsetHeight / 3);
+                const hue = Math.random() * 360;
+                
+                planet.style.width = size + "px";
+                planet.style.height = size + "px";
+                planet.style.left = x + "px";
+                planet.style.top = y + "px";
+                planet.style.background = `radial-gradient(circle at 30% 30%, hsl(${hue}, 80%, 70%), hsl(${hue}, 80%, 50%)`;
+                
+                gameArea.appendChild(planet);
+            }
+        }
+        
+        // Mudar cenário conforme a gravidade selecionada
+        function changeEnvironment() {
+            const gravity = gravidadeSelect.value;
+            
+            // Remover todas as classes de ambiente
+            gameArea.classList.remove("earth", "moon", "sun", "space");
+            
+            if (gravity === "9.8") {
+                gameArea.classList.add("earth");
+                currentGravity = "earth";
+                setupEarth();
+            } else if (gravity === "1.6") {
+                gameArea.classList.add("moon");
+                currentGravity = "moon";
+                setupMoon();
+            } else if (gravity === "274") {
+                gameArea.classList.add("sun");
+                currentGravity = "sun";
+                setupSun();
+            } else {
+                gameArea.classList.add("space");
+                currentGravity = "space";
+                setupSpace();
+            }
+            
+            // Reposicionar os jogadores
+            positionPlayers();
+        }
+        
+        // Posicionar os jogadores
+        function positionPlayers() {
+            // Jogador 1 (lançador) - posição fixa à esquerda
+            jogador1.style.left = "50px";
+            
+            // Jogador 2 (alvo) - posição aleatória
+            let maxHeight;
+            
+            if (currentGravity === "earth") {
+                maxHeight = gameArea.offsetHeight - 150; // Considerando parede e chão
+            } else {
+                maxHeight = gameArea.offsetHeight / 1.5;
+            }
+            
+            let novaX = Math.random() * (gameArea.offsetWidth - 200) + 150;
+            let novaY = gameArea.offsetHeight - (Math.random() * 200 + 100);
+            
+            jogador2.style.left = novaX + "px";
+            jogador2.style.bottom = "100px";
+        }
+        
+        // Criar efeito de confete
+        function createConfetti() {
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement("div");
+                confetti.classList.add("confetti");
+                
+                const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                const size = Math.random() * 10 + 5;
+                const x = Math.random() * gameArea.offsetWidth;
+                const duration = Math.random() * 2 + 2;
+                
+                confetti.style.width = size + "px";
+                confetti.style.height = size + "px";
+                confetti.style.left = x + "px";
+                confetti.style.backgroundColor = color;
+                confetti.style.animationDuration = duration + "s";
+                
+                gameArea.appendChild(confetti);
+                
+                // Remover após animação
+                setTimeout(() => {
+                    confetti.remove();
+                }, duration * 1000);
+            }
+        }
+        
+        // Mostrar mensagem
+        function showMessage(text, isSuccess, subtext = "") {
+            message.textContent = text;
+            if (subtext) message.innerHTML += `<span>${subtext}</span>`;
+            message.style.color = isSuccess ? "#4CAF50" : "#F44336";
+            message.style.display = "block";
+            message.style.animation = "none";
+            void message.offsetWidth; // Trigger reflow
+            message.style.animation = "popIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55)";
+            
+            setTimeout(() => {
+                message.style.display = "none";
+            }, 2000);
+        }
+        
+        // Atualizar pontuação
+        function updateScore(points) {
+            score += points;
+            scoreDisplay.textContent = score;
+            scoreDisplay.style.animation = "none";
+            void scoreDisplay.offsetWidth; // Trigger reflow
+            scoreDisplay.style.animation = "bounce 0.5s";
+            
+            // Efeito de confete para pontuações altas
+            if (points >= 10) {
+                createConfetti();
+            }
+        }
+        
+        // Animação do jogador
+        function animatePlayer() {
+            jogador1.classList.add("shooting");
+            
+            setTimeout(() => {
+                jogador1.classList.remove("shooting");
+            }, 300);
+        }
+        
+        // Animação do jogador atingido
+        function animateHit() {
+            jogador2.classList.add("hit");
+            
+            setTimeout(() => {
+                jogador2.classList.remove("hit");
+            }, 500);
+        }
+        
+        // Lançar a bola
+        function lancar() {
+            if (isAnimating) return;
+            isAnimating = true;
+            lancarBtn.disabled = true;
+            
+            // Cancelar animação anterior se existir
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            
+            // Limpar rastros e bolas antigas
+            document.querySelectorAll('.ponto, .bola').forEach(el => el.remove());
+            
+            const anguloDeg = parseFloat(anguloInput.value);
+            const velocidade = parseFloat(velocidadeInput.value);
+            const alturaInicial = parseFloat(alturaInput.value);
+            const gravidade = parseFloat(gravidadeSelect.value);
+            
+            // Validar entrada
+            if (isNaN(anguloDeg)) {
+                showMessage("Ângulo inválido!", false, "Digite um número válido");
+                isAnimating = false;
+                lancarBtn.disabled = false;
+                return;
+            }
+            
+            if (anguloDeg < 0 || anguloDeg > 90) {
+                showMessage("Ângulo inválido!", false, "Deve ser entre 0 e 90 graus");
+                isAnimating = false;
+                lancarBtn.disabled = false;
+                return;
+            }
+            
+            if (isNaN(velocidade)) {
+                showMessage("Velocidade inválida!", false, "Digite um número válido");
+                isAnimating = false;
+                lancarBtn.disabled = false;
+                return;
+            }
+            
+            if (velocidade <= 0) {
+                showMessage("Velocidade inválida!", false, "Deve ser maior que zero");
+                isAnimating = false;
+                lancarBtn.disabled = false;
+                return;
+            }
+            
+            if (isNaN(alturaInicial)) {
+                showMessage("Altura inválida!", false, "Digite um número válido");
+                isAnimating = false;
+                lancarBtn.disabled = false;
+                return;
+            }
+            
+            if (alturaInicial < 50 || alturaInicial > gameArea.offsetHeight - 100) {
+                showMessage(`Altura inválida!`, false, `Deve ser entre 50 e ${gameArea.offsetHeight - 100}`);
+                isAnimating = false;
+                lancarBtn.disabled = false;
+                return;
+            }
+            
+            const anguloRad = anguloDeg * Math.PI / 180;
+            
+            // Ajustar a velocidade baseado na massa da bola (bolas mais pesadas vão menos longe)
+            const velocidadeAjustada = velocidade * (1 / Math.sqrt(selectedBallMass));
+            
+            const v0x = velocidadeAjustada * Math.cos(anguloRad);
+            const v0y = velocidadeAjustada * Math.sin(anguloRad);
+            
+            let tempo = 0;
+            const dt = 0.05;
+            
+            // Criar nova bola com as propriedades selecionadas
+            const bola = document.createElement("div");
+            bola.classList.add("bola", balls[selectedBallType].class);
+            bola.style.width = balls[selectedBallType].size + "px";
+            bola.style.height = balls[selectedBallType].size + "px";
+            gameArea.appendChild(bola);
+            
+            const posXInicial = 80;
+            const posYInicial = gameArea.offsetHeight - alturaInicial;
+            
+            let pontos = [];
+            let hasHit = false;
+            
+            // Animação do jogador
+            animatePlayer();
+            
+            function animar() {
+                let x = v0x * tempo;
+                let y = v0y * tempo - 0.5 * gravidade * tempo * tempo;
+                
+                // Ajustar para escala do jogo (1m = 5px)
+                let posX = posXInicial + x * 5;
+                let posY = posYInicial - y * 5;
+                
+                // Criar pontos da trajetória
+                if (tempo % 0.2 < 0.1) {
+                    let ponto = document.createElement("div");
+                    ponto.classList.add("ponto");
+                    ponto.style.left = posX + "px";
+                    ponto.style.top = posY + "px";
+                    gameArea.appendChild(ponto);
+                }
+                
+                // Mover a bola
+                bola.style.left = posX + "px";
+                bola.style.top = posY + "px";
+                
+                // Adicionar efeito de rotação
+                if (tempo > 0.1) {
+                    bola.classList.add("spinning");
+                }
+                
+                pontos.push({x: posX, y: posY});
+                
+                // Verificar colisão com o jogador 2
+                let jogador2Rect = jogador2.getBoundingClientRect();
+                let gameAreaRect = gameArea.getBoundingClientRect();
+                let bolaRect = bola.getBoundingClientRect();
+
+                // Ajustar posições relativas ao gameArea
+                const jogador2Left = jogador2Rect.left - gameAreaRect.left;
+                const jogador2Right = jogador2Rect.right - gameAreaRect.left;
+                const jogador2Top = jogador2Rect.top - gameAreaRect.top;
+                const jogador2Bottom = jogador2Rect.bottom - gameAreaRect.top;
+
+                const bolaLeft = bolaRect.left - gameAreaRect.left;
+                const bolaRight = bolaRect.right - gameAreaRect.left;
+                const bolaTop = bolaRect.top - gameAreaRect.top;
+                const bolaBottom = bolaRect.bottom - gameAreaRect.top;
+
+                // Verificar colisão entre bola e jogador
+                if (
+                    bolaLeft < jogador2Right &&
+                    bolaRight > jogador2Left &&
+                    bolaTop < jogador2Bottom &&
+                    bolaBottom > jogador2Top &&
+                    !hasHit
+                ) {
+                    // Acertou o jogador
+                    hasHit = true;
+                    updateScore(10);
+                    animateHit();
+                    showMessage("Acertou!", true, `+10 pontos (${balls[selectedBallType].name}: ${selectedBallMass} kg)`);
+                    calcularResultados(v0x, v0y, gravidade, tempo, pontos, true);
+                    
+                    // Mover o jogador após um breve delay
+                    setTimeout(() => {
+                        positionPlayers();
+                    }, 1500);
+                    
+                    // Remover a bola
+                    setTimeout(() => {
+                        bola.remove();
+                        isAnimating = false;
+                        lancarBtn.disabled = false;
+                    }, 1000);
+                    return;
+                }
+                
+                tempo += dt;
+                
+                // Verificar se a bola saiu da área do jogo
+                if (posY > gameArea.offsetHeight || posX > gameArea.offsetWidth || posX < 0) {
+                    if (!hasHit) {
+                        showMessage("Errou!", false, "Tente novamente");
+                        calcularResultados(v0x, v0y, gravidade, tempo, pontos, false);
+                    }
+                    
+                    // Remover a bola após um breve delay
+                    setTimeout(() => {
+                        bola.remove();
+                        isAnimating = false;
+                        lancarBtn.disabled = false;
+                    }, 500);
+                    return;
+                }
+                
+                animationId = requestAnimationFrame(animar);
+            }
+            
+            animar();
+        }
+        
+        function calcularResultados(v0x, v0y, g, tempoFinal, pontos, acertou) {
+            let alcance = v0x * tempoFinal;
+            let alturaMax = (v0y * v0y) / (2 * g);
+            let tempoTotal = tempoFinal;
+            let velocidadeFinal = Math.sqrt(
+                Math.pow(v0x, 2) + 
+                Math.pow(v0y - g * tempoFinal, 2)
+            );
+            
+            // Calcular ângulo de impacto
+            let anguloImpacto = Math.atan2(
+                (v0y - g * tempoFinal),
+                v0x
+            ) * 180 / Math.PI;
+            
+            info.innerHTML = `
+                <h2>Resultados do Lançamento:</h2>
+                <p><b>Bola utilizada:</b> ${balls[selectedBallType].name} (${selectedBallMass} kg)</p>
+                <p><b>Resultado:</b> ${acertou ? '<span style="color:#4CAF50">Acertou o alvo!</span>' : '<span style="color:#F44336">Não acertou o alvo</span>'}</p>
+                <p><b>Tempo total:</b> ${tempoTotal.toFixed(2)} s</p>
+                <p><b>Alcance horizontal:</b> ${alcance.toFixed(2)} m</p>
+                <p><b>Altura máxima:</b> ${alturaMax.toFixed(2)} m</p>
+                <p><b>Velocidade final:</b> ${velocidadeFinal.toFixed(2)} m/s</p>
+                <p><b>Ângulo de impacto:</b> ${Math.abs(anguloImpacto).toFixed(2)}°</p>
+                <p><b>Equação da trajetória:</b> y(x) = tan(${(Math.atan2(v0y, v0x) * 180/Math.PI).toFixed(2)}°)·x - (${g.toFixed(2)}/(2·${(v0x*v0x).toFixed(2)}))·x²</p>
+            `;
+        }
+        
+        // Inicializar o jogo
+        gravidadeSelect.addEventListener("change", changeEnvironment);
+        
+        // Adicionar evento de teclado para lançar com espaço
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space" && !isAnimating) {
+                e.preventDefault();
+                lancar();
+            }
+        });
+        
+        // Inicializar ambiente
+        changeEnvironment();
+    </script>
+
+</body>
+</html>
